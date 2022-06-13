@@ -17,7 +17,7 @@ var browserify = require('browserify');
 var gulp = require('gulp');
 var rename = require('gulp-rename');
 var replace = require('gulp-replace');
-var uglify = require('gulp-uglify');
+var terser = require('gulp-terser');
 var sourcemaps = require('gulp-sourcemaps');
 var buffer = require('vinyl-buffer');
 var source = require('vinyl-source-stream');
@@ -40,7 +40,7 @@ gulp.task('lib-concat', function() {
     // This will output the non-minified version
     .pipe(gulp.dest(DEST))
     // This will minify and rename to stackdriver-errors.min.js
-    .pipe(uglify())
+    .pipe(terser())
     .pipe(rename({extname: '.min.js'}))
     .pipe(sourcemaps.write('maps'))
     .pipe(gulp.dest(DEST));
@@ -57,7 +57,7 @@ gulp.task('demo-html', function() {
 gulp.task('demo-js', function() {
   return gulp.src('demo/demo.js')
     .pipe(sourcemaps.init())
-    .pipe(uglify())
+    .pipe(terser())
     .pipe(rename({extname: '.min.js'}))
     .pipe(sourcemaps.write('maps'))
     .pipe(gulp.dest('dist'));

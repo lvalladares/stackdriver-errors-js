@@ -19,7 +19,7 @@ let StackTrace = require('stacktrace-js');
 /**
  * URL endpoint of the Stackdriver Error Reporting report API.
  */
-let baseAPIUrl = 'https://clouderrorreporting.googleapis.com/v1beta1/projects/';
+const baseAPIUrl = 'https://clouderrorreporting.googleapis.com/v1beta1/projects/';
 
 /**
  * An Error handler that sends errors to the Stackdriver Error Reporting API.

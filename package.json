@@ -41,7 +41,7 @@
     "gulp-rename": "^1.4.0",
     "gulp-replace": "^1.1.2",
     "gulp-sourcemaps": "^2.6.5",
-    "gulp-uglify": "^3.0.2",
+    "gulp-terser": "^2.1.0",
     "http-server": "^0.12.3",
     "mocha": "^9.0.2",
     "nise": "^1.5.3",
