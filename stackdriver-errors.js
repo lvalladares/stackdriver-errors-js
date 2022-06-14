@@ -37,6 +37,7 @@ const StackdriverErrorReporter = function() {};
  * @param {Function} config.customMessageTranslator - Custom function to be called with the error payload for message translating. This function should return the new message.
  * @param {String} [config.service=web] - service identifier.
  * @param {String} [config.version] - version identifier.
+ * @param {String} [config.basePath] - base path of all the js files for location.
  * @param {Boolean} [config.reportUncaughtExceptions=true] - Set to false to stop reporting unhandled exceptions.
  * @param {Boolean} [config.disabled=false] - Set to true to not report errors when calling report(), this can be used when developping locally.
  */
@@ -54,6 +55,7 @@ StackdriverErrorReporter.prototype.start = function(config) {
     this.projectId = config.projectId;
     this.targetUrl = config.targetUrl;
     this.context = config.context || {};
+    this.basePath = config.basePath;
     this.serviceContext = {service: config.service || 'web'};
     if (config.version) {
         this.serviceContext.version = config.version;
@@ -116,6 +118,8 @@ StackdriverErrorReporter.prototype.report = function(err, options) {
         url: window.location.href,
     };
 
+
+
     let firstFrameIndex = 0;
     if (typeof err == 'string' || err instanceof String) {
         // Transform the message in an error, use try/catch to make sure the stacktrace is populated.
@@ -134,8 +138,8 @@ StackdriverErrorReporter.prototype.report = function(err, options) {
     let customFunc = this.customReportingFunction;
     let customMessageTranslator = this.customMessageTranslator;
 
-    return resolveError(err, firstFrameIndex)
-        .then(function(message) {
+    return resolveError(err, firstFrameIndex, this.basePath)
+        .then(function([message, reportLocation]) {
             if (customMessageTranslator) {
                 payload.message = customMessageTranslator(message)
             } else {
@@ -144,11 +148,13 @@ StackdriverErrorReporter.prototype.report = function(err, options) {
             if (customFunc) {
                 return customFunc(payload);
             }
+
+            payload.context.reportLocation = reportLocation;
             return sendErrorPayload(reportUrl, payload);
         });
 };
 
-function resolveError(err, firstFrameIndex) {
+function resolveError(err, firstFrameIndex, fileBasePath) {
     // This will use sourcemaps and normalize the stack frames
     return StackTrace.fromError(err).then(function(stack) {
         let lines = [err.toString()];
@@ -164,14 +170,28 @@ function resolveError(err, firstFrameIndex) {
                 stack[s].getColumnNumber(), ')',
             ].join(''));
         }
-        return lines.join('\n');
+
+        let filePathList = stack[firstFrameIndex].getFileName().split("/");
+        let fileName = []
+        for (let e = 3; e < filePathList.length; e++) {
+            fileName.push(filePathList[e].split("?")[0]);
+        }
+
+        fileName = fileBasePath + "/" + fileName.join("/");
+
+        return [lines.join('\\n'), {
+                filePath: fileName,
+                lineNumber: stack[firstFrameIndex].getLineNumber(),
+                functionName: stack[firstFrameIndex].getFunctionName() || '<anonymous>',
+            }
+        ]
     }, function(reason) {
         // Failure to extract stacktrace
-        return [
+        return [[
             'Error extracting stack trace: ', reason, '\n',
             err.toString(), '\n',
             '    (', err.file, ':', err.line, ':', err.column, ')',
-        ].join('');
+        ].join(''), {}];
     });
 }
 
